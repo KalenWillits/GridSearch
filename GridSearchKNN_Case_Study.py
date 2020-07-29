@@ -76,20 +76,25 @@ p=sns.heatmap(df.corr(), annot=True,cmap ='Blues')
 # %% markdown
 # **<font color='teal'> Using Sklearn, standarize the magnitude of the features by scaling the values. </font>**
 # %% codecell
+from sklearn.preprocessing import StandardScaler
+ss = StandardScaler()
 
+for column in df.columns:
+    df[column] = ss.fit_transform(df[[column]])
 # %% markdown
 # **<font color='teal'> Define the `y` variable as the `Outcome` column.</font>**
 # %% codecell
-
+X = df.drop('Outcome', axis=1)
+y = df['Outcome'].astype(int)
 # %% markdown
 # **<font color='teal'> Create a 70/30 train and test split. </font>**
 # %% codecell
-
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=1111)
 # %% markdown
 # #### Using a range of neighbor values of 1-10, apply the KNearestNeighbor classifier to classify the the data.
 # %% codecell
 from sklearn.neighbors import KNeighborsClassifier
-
 
 test_scores = []
 train_scores = []
@@ -104,21 +109,28 @@ for i in range(1,10):
 # %% markdown
 # **<font color='teal'> Print the train and test scores for each iteration.</font>**
 # %% codecell
-
+print(train_scores)
+print(test_scores)
 # %% markdown
 # **<font color='teal'> Identify the number of neighbors between 1-15 that resulted in the max score in the training dataset. </font>**
 # %% codecell
-
+parameters = {'n_neighbors':range(1,16)}
+from sklearn.model_selection import GridSearchCV
+grid_search = GridSearchCV(knn, parameters)
+grid_search.fit(X_train, y_train)
+print(grid_search.best_params_)
 # %% markdown
 # **<font color='teal'> Identify the number of neighbors between 1-15 that resulted in the max score in the testing dataset. </font>**
 # %% codecell
-
+grid_search.fit(X_test, y_test)
+print(grid_search.best_params_)
 # %% markdown
 # Plot the train and test model performance by number of neighbors.
 # %% codecell
 plt.figure(figsize=(12,5))
 p = sns.lineplot(range(1,10),train_scores,marker='*',label='Train Score')
 p = sns.lineplot(range(1,10),test_scores,marker='o',label='Test Score')
+plt.savefig('figures/train_vs_test_scores')
 # %% markdown
 # **<font color='teal'> Fit and score the best number of neighbors based on the plot. </font>**
 # %% codecell
@@ -130,11 +142,16 @@ pl = confusion_matrix(y_test,y_pred)
 # %% markdown
 # **<font color='teal'> Plot the confusion matrix for the model fit above. </font>**
 # %% codecell
-
+plt.plot(pl)
+plt.title('confusion_matrix')
+plt.savefig('figures/confusion_matrix.png')
 # %% markdown
 # **<font color='teal'> Print the classification report </font>**
 # %% codecell
+from sklearn.metrics import classification_report
 
+cr = classification_report(y_test, y_pred)
+print(cr)
 # %% markdown
 # #### In the case of the K nearest neighbors algorithm, the K parameter is one of the most important parameters affecting the model performance.  The model performance isn't horrible, but what if we didn't consider a wide enough range of values in our neighbors for the KNN? An alternative to fitting a loop of models is to use a grid search to identify the proper number. It is common practice to use a grid search method for all adjustable parameters in any type of machine learning algorithm. First, you define the grid — aka the range of values — to test in the parameter being optimized, and then compare the model outcome performance based on the different values in the grid.
 # %% markdown
@@ -152,9 +169,16 @@ print("Best Score:" + str(knn_cv.best_score_))
 print("Best Parameters: " + str(knn_cv.best_params_))
 # %% markdown
 # Here you can see that the ideal number of n_neighbors for this model is 14 based on the grid search performed.
+# > Actually it's 25. However if we change the limit of parameters to 15, 14 would be the pest paramter to use.
 # %% markdown
 # **<font color='teal'> Now, following the KNN example, apply this grid search method to find the optimal number of estimators in a Randon Forest model.
 # </font>**
 # %% codecell
-
+from sklearn.ensemble import RandomForestClassifier
+param_grid = {'n_estimators': range(100)}
+rfc = RandomForestClassifier()
+rfc_cv = GridSearchCV(rfc, param_grid, cv=5)
+rfc_cv.fit(X,y)
 # %% codecell
+print("Best Score:" + str(rfc_cv.best_score_))
+print("Best Parameters: " + str(rfc_cv.best_params_))
